@@ -10,6 +10,8 @@ a subclass to have any effect
 
 class Migration(object):
 
+    name = "base"
+
     def check(self, connection):
         """Ensures that a given migration ran successfully"""
         return True
