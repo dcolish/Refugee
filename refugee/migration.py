@@ -8,6 +8,10 @@ a subclass to have any effect
 """
 
 
+class MigrationError(Exception):
+    """Raised when a Migration Fails"""
+
+
 class Migration(object):
 
     name = "base"

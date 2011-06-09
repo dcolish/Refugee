@@ -1,4 +1,4 @@
-from configparser import SafeConfigParser
+from ConfigParser import SafeConfigParser
 from argparse import ArgumentParser
 from cmd import Cmd
 
@@ -30,6 +30,9 @@ class RefugeeCmd(Cmd):
         """
         print "initializing migrations in %s" % directory
         migrations.init(directory)
+
+    def do_list(self, arg):
+        migrations.list()
 
     def do_migrate(self, arg):
         """Run all up migrations"""
@@ -76,10 +79,14 @@ def main():
                         help="command parameters")
 
     options = parser.parse_args()
-    config.read(options.config)
+
     command = options.command
     parameters = ' '.join(options.parameters)
-    migrations.configure(dict(config.items('refugee')))
+    if options.config:
+        if command == 'init':
+            print "Configuration files are not compatible with initialization"
+        config.read(options.config)
+        migrations.configure(dict(config.items('refugee')))
     if command == '' and parameters == '':
         cli.cmdloop()
     else:
