@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open('README.rst') as f:
+with open('README') as f:
 
     setup(name="Refugee",
           version="dev",
@@ -23,8 +23,21 @@ with open('README.rst') as f:
             'Programming Language :: Python :: 2.7',
             'Operating System :: Unix',
             ],
+
+          entry_points={
+            'console_scripts': [
+                'refugee=refugee.cli:main',
+                ],
+            },
+
+          extras_require={
+            'PG': ['psycopg2>=2.0.10'],
+            'MYSQL': ['MySQL-python>=1.2.2'],
+            'ORACLE': ['cx_Oracle>=5.0'],
+            'MSSQL': ['pymssql>=1.0.2'],
+            },
+
           install_requires=[
             'SQLAlchemy',
-            'psycopg2',
             ],
           )

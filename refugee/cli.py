@@ -1,10 +1,20 @@
 from argparse import ArgumentParser
 from cmd import Cmd
 
+from refugee.inspector import dump_sql
+
 
 class RefugeeCmd(Cmd):
     intro = 'Welcome to the Refugee Shell. Type help or ? to list commands\n'
     prompt = 'refugee> '
+
+    def do_dumpsql(self, arg):
+        """
+        Produces a raw sql dump of the existing database to the best abilities
+        of refugee. There will be certain types which are impossible to dump
+        currently
+        """
+        dump_sql(arg)
 
     def do_down(self, arg):
         """Run down migration with name or numeric id matching arg"""
@@ -47,7 +57,7 @@ class RefugeeCmd(Cmd):
         pass
 
 
-if __name__ == "__main__":
+def main():
     cli = RefugeeCmd()
     parser = ArgumentParser()
     parser.add_argument('-c', '--config', help='Configuration File')
@@ -63,3 +73,7 @@ if __name__ == "__main__":
         cli.cmdloop()
     else:
         cli.onecmd(' '.join((command, parameters)))
+
+
+if __name__ == "__main__":
+    main()
