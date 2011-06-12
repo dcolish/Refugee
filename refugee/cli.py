@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from cmd import Cmd
 
 from refugee.inspector import dump_sql
-from refugee.manager import migrations
+from refugee.manager import migration_manager
 from refugee.migration import Direction
 
 
@@ -11,9 +11,21 @@ class RefugeeCmd(Cmd):
     intro = 'Welcome to the Refugee Shell. Type help or ? to list commands\n'
     prompt = 'refugee> '
 
+    def __init__(self, manager):
+        Cmd.__init__(self)
+        self.manager = manager
+
+    def default(self, line):
+        if line == 'EOF':
+            print
+            exit()
+        else:
+            print "Unrecognizable command"
+            self.do_help('')
+
     def do_dumpsql(self, arg):
         """
-        Produces a raw sql dump of the existing database to the best abilities
+        Produces a raw SQL dump of the existing database to the best abilities
         of refugee. There will be certain types which are impossible to dump
         currently
         """
@@ -22,7 +34,7 @@ class RefugeeCmd(Cmd):
     def do_down(self, arg):
         """Run down migration with name or numeric id matching arg"""
         print "running down migration"
-        migrations.run_one(arg, Direction.DOWN)
+        self.manager.run_one(arg, Direction.DOWN)
 
     def do_init(self, directory):
         """
@@ -32,10 +44,13 @@ class RefugeeCmd(Cmd):
         :param directory: location to initialize migrations in
         """
         print "initializing migrations in %s" % directory
-        migrations.init(directory)
+        self.manager.init(directory)
 
     def do_list(self, arg):
-        migrations.list()
+        """
+        Show all available migrations
+        """
+        self.manager.list()
 
     def do_migrate(self, arg):
         """
@@ -45,7 +60,7 @@ class RefugeeCmd(Cmd):
         print "running migrations"
         #XXX:dc: need to interpret the args to allow passing of a specific
         # migration for the stopping point
-        migrations.run_all(Direction.UP)
+        self.manager.run_all(Direction.UP)
 
     def do_new(self, name):
         """
@@ -56,12 +71,12 @@ class RefugeeCmd(Cmd):
         """
         print "creating migration %s" % name
         #XXX:dc: assert that name is sane
-        migrations.new(name)
+        self.manager.new(name)
 
     def do_up(self, arg):
         """Run up migration with name or numeric id matching arg"""
         print "running up migration"
-        migrations.run(arg, Direction.UP)
+        self.manager.run(arg, Direction.UP)
 
     def do_exit(self, arg):
         """Quit the interactive shell"""
@@ -71,21 +86,12 @@ class RefugeeCmd(Cmd):
         """Quit the interactive shell"""
         exit()
 
-    def default(self, line):
-        if line == 'EOF':
-            print
-            exit()
-        else:
-            print "Unrecognizable command"
-            self.do_help('')
-
     def emptyline(self):
         # Do nothing with empty lines
         pass
 
 
 def main():
-    cli = RefugeeCmd()
     config = SafeConfigParser()
     parser = ArgumentParser()
     parser.add_argument('-c', '--config', help='Configuration File')
@@ -95,17 +101,24 @@ def main():
                         help="command parameters")
 
     options = parser.parse_args()
-
     command = options.command
     parameters = ' '.join(options.parameters)
+
     if options.config:
         if command == 'init':
             print "Configuration files are not compatible with initialization"
         config.read(options.config)
-        migrations.configure(dict(config.items('refugee')))
+        migration_manager.configure(dict(config.items('refugee')))
+    else:
+        #XXX:dc: eventually, when we we're not given a configuration file so
+        #lets try to find one anyway
+        assert command == 'init'
+
+    cli = RefugeeCmd(migration_manager)
     if command == '' and parameters == '':
         cli.cmdloop()
     else:
+        assert migration_manager.configured
         cli.onecmd(' '.join((command, parameters)))
 
 

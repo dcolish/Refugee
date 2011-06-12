@@ -8,6 +8,7 @@ in a subclass to have any effect
 """
 
 from collections import namedtuple
+import threading
 
 
 Direction = namedtuple('Direction', 'UP DOWN')._make(range(2))
@@ -19,6 +20,10 @@ class MigrationError(Exception):
 
 class UnknowDirectionError(MigrationError):
     """Raised when an unknown migration direction is given"""
+
+
+class RegistryLocked(Exception):
+    """Raised when the registration is locked and attempted to be modified"""
 
 
 class Migration(object):
@@ -51,3 +56,35 @@ class Migration(object):
     def up(self, connection):
         """Called when Direction.UP == True"""
         raise NotImplementedError
+
+
+migration_tmpl = """\
+from refugee import migration
+
+class {cls_name}(Migration):
+    name = {migration_name}
+
+    def up(self, connection):
+        #TODO implement {name} up migration
+        pass
+
+    def down(self, connection):
+        #TODO implement {name} down migration
+        pass
+
+"""
+
+
+registry_lock = threading.Lock()
+
+
+class registry(dict):
+    """Lame attempt at a locking registry"""
+
+    def __getitem__(self, key):
+        with registry_lock:
+            super(dict, self).__getitem__(key)
+
+    def __setitem__(self, key, value):
+        with registry_lock:
+            super(dict, self).__setitem__(key, value)

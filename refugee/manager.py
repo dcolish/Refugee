@@ -8,7 +8,13 @@ from os.path import join as pjoin
 
 from sqlalchemy import create_engine
 
-from migration import Direction, MigrationError, UnknowDirectionError
+from migration import (
+    Direction,
+    MigrationError,
+    migration_tmpl,
+    registry,
+    UnknowDirectionError,
+    )
 
 
 def build_engine(connection_string):
@@ -21,10 +27,22 @@ bind_url = sqlite:///:memory:
 migration_home = {path}
 """
 
+#XXX:dc: think about using entry points for registering migrations as well?
+migration_registry = registry()
+
+
+def register(migration_cls):
+    """
+    Inserts migration into registry
+    """
+    global migration_registry
+    migration_registry.update({migration_cls.name: migration_cls})
+    return migration_cls
+
 
 class MigrationManager(object):
-    _registry = {}
     engine = None
+    configured = False
 
     def collect(self):
         # Walk self.migration_home and return all potential modules
@@ -45,6 +63,7 @@ class MigrationManager(object):
     def configure(self, config):
         self.engine = build_engine(config.get('bind_url'))
         self.migration_home = config.get('migration_home')
+        self.configured = True
 
     def new(self, name):
         """
@@ -53,7 +72,13 @@ class MigrationManager(object):
         There is no guarantee this id will be unique for all remote migration
         configurations. Conflicts will require manual management.
         """
-        pass
+        #XXX:dc: assert that the name is somewhat sane and follows python
+        # naming conventions
+        next_id = 0
+        cls_name = '_'.join((name, next_id))
+        with open(pjoin(self.migration_home, name), "w+") as new_migration:
+            print >> new_migration, migration_tmpl.format(
+                cls_name=cls_name, migration_name=name)
 
     def init(self, directory):
         path = pjoin(directory, 'migrations')
@@ -62,17 +87,12 @@ class MigrationManager(object):
             print >> conf, configuration_tmpl.format(path=path)
 
     def list(self):
-        self.collect_migrations()
-        for k in self._registry.keys():
+        self.collect()
+        for k in migration_registry.keys():
             print k
 
-    def register(self, migration_cls):
-        """Inserts migration into registry"""
-        self._registry.update({migration_cls.name: migration_cls})
-        return migration_cls
-
     def run_all(self, direction):
-            for key in sorted(self._registry.keys):
+            for key in sorted(migration_registry.keys):
                 self.run(key, direction)
 
     def run(self, key, direction):
@@ -82,7 +102,7 @@ class MigrationManager(object):
         connection = self.engine.connect()
         trans = connection.begin()
         try:
-            migration = self._registry[key]()
+            migration = migration_registry[key]()
             if migration.preflight():
                 trans = connection.begin()
 
@@ -102,4 +122,4 @@ class MigrationManager(object):
             #XXX:dc: do more to introspect why we failed
             raise e
 
-migrations = MigrationManager()
+migration_manager = MigrationManager()
