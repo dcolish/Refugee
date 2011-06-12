@@ -8,7 +8,7 @@ from os.path import join as pjoin
 
 from sqlalchemy import create_engine
 
-from migration import MigrationError
+from migration import Direction, MigrationError, UnknowDirectionError
 
 
 def build_engine(connection_string):
@@ -26,7 +26,7 @@ class MigrationManager(object):
     _registry = {}
     engine = None
 
-    def collect_migrations(self):
+    def collect(self):
         # Walk self.migration_home and return all potential modules
         for root, dirname, files in walk(self.migration_home):
             for file_name in file_filter(files, "*.py"):
@@ -46,6 +46,15 @@ class MigrationManager(object):
         self.engine = build_engine(config.get('bind_url'))
         self.migration_home = config.get('migration_home')
 
+    def new(self, name):
+        """
+        Build a stub migration with name + auto-id in config['migration_home']
+
+        There is no guarantee this id will be unique for all remote migration
+        configurations. Conflicts will require manual management.
+        """
+        pass
+
     def init(self, directory):
         path = pjoin(directory, 'migrations')
         makedirs(path)
@@ -62,11 +71,11 @@ class MigrationManager(object):
         self._registry.update({migration_cls.name: migration_cls})
         return migration_cls
 
-    def run(self, direction):
+    def run_all(self, direction):
             for key in sorted(self._registry.keys):
-                self.run_one(key, direction)
+                self.run(key, direction)
 
-    def run_one(self, key, direction):
+    def run(self, key, direction):
         if not self.engine:
             raise AttributeError("No engine configured for MigrationManager")
 
@@ -74,8 +83,16 @@ class MigrationManager(object):
         trans = connection.begin()
         try:
             migration = self._registry[key]()
-            migration.preflight()
-            getattr(migration, direction)(connection)
+            if migration.preflight():
+                trans = connection.begin()
+
+            if direction == Direction.UP:
+                migration.up(connection)
+            elif direction == Direction.DOWN:
+                migration.down(connection)
+            else:
+                raise UnknowDirectionError
+
             if migration.check():
                 trans.commit()
             else:

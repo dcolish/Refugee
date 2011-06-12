@@ -4,6 +4,7 @@ from cmd import Cmd
 
 from refugee.inspector import dump_sql
 from refugee.manager import migrations
+from refugee.migration import Direction
 
 
 class RefugeeCmd(Cmd):
@@ -21,11 +22,13 @@ class RefugeeCmd(Cmd):
     def do_down(self, arg):
         """Run down migration with name or numeric id matching arg"""
         print "running down migration"
-        migrations.run_one(arg, 'down')
+        migrations.run_one(arg, Direction.DOWN)
 
     def do_init(self, directory):
         """
-        Run down migration with name or numeric id matching arg
+        Create a new migrations directory and initialize the configuration
+        file in that directory
+
         :param directory: location to initialize migrations in
         """
         print "initializing migrations in %s" % directory
@@ -35,17 +38,30 @@ class RefugeeCmd(Cmd):
         migrations.list()
 
     def do_migrate(self, arg):
-        """Run all up migrations"""
+        """
+        Run migrations, If an argument is passed that will be used as the
+        stopping point for the migration run
+        """
         print "running migrations"
+        #XXX:dc: need to interpret the args to allow passing of a specific
+        # migration for the stopping point
+        migrations.run_all(Direction.UP)
 
-    def do_new(self, arg):
-        """Run down migration with name or numeric id matching arg"""
-        print "initializing migrations"
+    def do_new(self, name):
+        """
+        Create a migration with `name`. The migration will also be assigned an
+        locally unique id.
+
+        :param name: The named parameter to give the new migration
+        """
+        print "creating migration %s" % name
+        #XXX:dc: assert that name is sane
+        migrations.new(name)
 
     def do_up(self, arg):
         """Run up migration with name or numeric id matching arg"""
         print "running up migration"
-        migrations.run_one(arg, 'up')
+        migrations.run(arg, Direction.UP)
 
     def do_exit(self, arg):
         """Quit the interactive shell"""
