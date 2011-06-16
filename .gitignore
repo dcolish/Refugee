@@ -1,0 +1,6 @@
+dev/
+dist/
+docs/_build/
+docs/make.bat
+refugee.egg-info/
+
