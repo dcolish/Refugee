@@ -13,3 +13,8 @@ help version and control the migration process. This should do the following
 * control all migrations in a transaction and assure that each applies cleanly
 * prevent migrations from being applied multiple times
 * attempt to merge long branches of migrations
+
+Testing
+~~~~~~~
+
+Tests results will be available: https://jenkins.shiningpanda.com/refugee/

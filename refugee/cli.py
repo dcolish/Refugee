@@ -8,6 +8,8 @@ from refugee.migration import Direction
 
 
 class RefugeeCmd(Cmd):
+    """The command line interface for Refugee"""
+
     intro = 'Welcome to the Refugee Shell. Type help or ? to list commands\n'
     prompt = 'refugee> '
 
@@ -112,7 +114,7 @@ def main():
     else:
         #XXX:dc: eventually, when we we're not given a configuration file so
         #lets try to find one anyway
-        assert command == 'init'
+        assert command == 'init', "You must specify a config file or init a new repo"
 
     cli = RefugeeCmd(migration_manager)
     if command == '' and parameters == '':

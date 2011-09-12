@@ -39,7 +39,7 @@ class Migration(object):
 
         :py:func:`.preflight` -> (:py:func:`.up` | :py:func:`.down`) -> :py:func:`.check`
     """
-    name = "base"
+    name = None
 
     def check(self, connection):
         """Ensures that a given migration ran successfully"""
@@ -59,7 +59,8 @@ class Migration(object):
 
 
 migration_tmpl = """\
-from refugee import migration
+from refugee import Migration, register
+
 
 class {cls_name}(Migration):
     name = {migration_name}
